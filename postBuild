@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+VERSION="1.0.3"
+wget -q https://github.com/dflib/jjava/releases/download/${VERSION}/jjava-${VERSION}.zip
+unzip jjava-${VERSION}.zip
+cd jjava-${VERSION}
+python install.py --sys-prefix
