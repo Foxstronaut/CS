@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Array Interactive Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        #array-container {
+            width: 100%;
+            max-width: 100%;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            overflow: auto;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 830px;
+            width: 100%;
+        }
+
+        .control-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .divisor {
+            height: 2px;
+            background-color: #333;
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .section-title {
+            width: 100%;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #b0b0b0;
+        }
+
+        button, input {
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3a833d;
+            transform: scale(1.05);
+        }
+
+        input[type="text"] {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #5a5a5a;
+            width: 155px;
+        }
+
+        input[type="number"] {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+            border: 1px solid #5a5a5a;
+            width: 30px;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 30px;
+            padding: 0;
+            border: none;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .color-picker label {
+            min-width: 70px;
+            text-align: right;
+            margin-right: 5px;
+        }
+
+        .text-settings {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .text-settings label {
+            text-align: right;
+        }
+
+        .text-settings input[type="number"],
+        .text-settings input[type="color"] {
+            width: 60px;
+        }
+
+        .checkbox-control {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .checkbox-control input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .checkbox-control label {
+            margin-left: 5px;
+        }
+
+        #array-list {
+            width: 100%;
+        }
+
+        .array-name {
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .array-name-input {
+            width: 150px;
+            margin-right: 10px;
+        }
+
+        .array-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #3a3a3a;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            cursor: move;
+        }
+
+        .array-item.hidden {
+            background-color: #2a2a2a;
+            opacity: 0.7;
+        }
+
+        .array-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .array-item button {
+            margin-left: 10px;
+        }
+
+        .array-edit {
+            display: flex;
+            align-items: center;
+        }
+
+        .array-edit input {
+            flex-grow: 1;
+        }
+
+        .hide-show-button {
+            min-width: 60px;
+        }
+
+        #element-menu {
+            display: none;
+            position: absolute;
+            background-color: #444;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 10px;
+            width: 160px;
+            z-index: 1000;
+        }
+
+        #element-menu input,
+        #element-menu button {
+            width: 100%;
+            margin-bottom: 5px;
+            box-sizing: border-box;
+        }
+
+        #element-menu input {
+            padding: 5px;
+        }
+
+        .highlight-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .highlight-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .highlight-button {
+            flex: 1;
+            margin: 0 2px;
+            padding: 5px;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .highlight-button:hover {
+            filter: brightness(85%);
+            transform: scale(1.05);
+        }
+
+        .delete-btn {
+            background-color: #ff4444;
+        }
+
+        .delete-btn:hover {
+            background-color: #cc0000;
+            transform: scale(1.05);
+        }
+
+        .reset-btn {
+            background-color: #0a6aa1;
+        }
+
+        .reset-btn:hover {
+            background-color: #0a4d73;
+            transform: scale(1.05);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #333333;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            text-align: center;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #custom-modal-buttons {
+            margin-top: 15px;
+        }
+
+        #custom-modal-ok, #custom-modal-cancel {
+            margin: 0 10px;
+            padding: 5px 15px;
+            color: #eeeeee;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        #custom-modal-ok {
+            background-color: #4CAF50;
+        }
+
+        #custom-modal-cancel {
+            background-color: #f44336;
+        }
+
+        #custom-modal-ok:hover {
+            background-color: #45a049;
+        }
+
+        #custom-modal-cancel:hover {
+            background-color: #da190b;
+        }
+
+        .notification {
+            background-color: #333333;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 10px;
+            max-width: 300px;
+            opacity: 0;
+            padding: 15px;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left-color: #28a745;
+        }
+
+        .notification.error {
+            border-left-color: #dc3545;
+        }
+
+        .notification.warning {
+            border-left-color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+<div id="array-container">
+    <svg></svg>
+</div>
+<div class="controls">
+    <div class="control-section">
+        <div class="section-title">Array Input</div>
+        <label for="array-input"></label><input type="text" id="array-input"
+                                                placeholder="Enter array (comma-separated)">
+        <button onclick="addArray()">Add Array</button>
+        <div class="divisor"></div>
+        <div class="section-title">Array List</div>
+        <div id="array-list"></div>
+        <div style="display: none;">
+            <div class="array-item"></div>
+            <div class="array-name"></div>
+            <div class="array-item hidden"></div>
+        </div>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Display Options</div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-indexes" checked onchange="drawArrays()">
+            <label for="show-indexes">Show Indexes</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-names" checked onchange="drawArrays()">
+            <label for="show-names">Show Array Names</label>
+        </div>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Color Settings</div>
+        <div class="color-picker">
+            <label for="base-color">Base:</label>
+            <input type="color" id="base-color" value="#E3F9F9" onchange="updateColors()">
+        </div>
+        <div class="color-picker">
+            <label for="highlight1-color">Highlight 1:</label>
+            <input type="color" id="highlight1-color" value="#1AD1B2" onchange="updateColors()">
+        </div>
+        <div class="color-picker">
+            <label for="highlight2-color">Highlight 2:</label>
+            <input type="color" id="highlight2-color" value="#1AD1B2" onchange="updateColors()">
+        </div>
+        <div class="color-picker">
+            <label for="highlight3-color">Highlight 3:</label>
+            <input type="color" id="highlight3-color" value="#91C0BF" onchange="updateColors()">
+        </div>
+        <div class="color-picker">
+            <label for="element-font-color">Element:</label>
+            <input type="color" id="element-font-color" value="#1a1a1a" onchange="updateFontColors()">
+        </div>
+        <div class="color-picker">
+            <label for="index-font-color">Index and Name:</label>
+            <input type="color" id="index-font-color" value="#e0e0e0" onchange="updateFontColors()">
+        </div>
+        <div class="color-picker">
+            <label for="arrow-color">Arrow:</label>
+            <input type="color" id="arrow-color" value="#FFFFFF" onchange="updateColors()">
+        </div>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Arrow Options</div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-down-arrows" onchange="drawArrays()">
+            <label for="show-down-arrows">Show Down Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-up-arrows" onchange="drawArrays()">
+            <label for="show-up-arrows">Show Up Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-top-arrows" onchange="drawArrays()">
+            <label for="show-top-arrows">Show Top Arrows</label>
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="show-bottom-arrows" onchange="drawArrays()">
+            <label for="show-bottom-arrows">Show Bottom Arrows</label>
+        </div>
+        <button onclick="removeArrowLabels()">Remove Arrow Labels</button>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Text Settings</div>
+        <div class="text-settings">
+            <label for="element-font-size">Element Size:</label>
+            <input type="number" id="element-font-size" value="30" min="20" max="50" onchange="changeFontSize()">
+
+            <label for="index-font-size">Index Size:</label>
+            <input type="number" id="index-font-size" value="17" min="10" max="20" onchange="changeFontSize()">
+        </div>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Export</div>
+        <label for="scale-factor">Scale Factor:</label>
+        <input type="number" id="scale-factor" value="2" min="0.5" max="5" step="0.5">
+        <div class="color-picker">
+            <label for="background-color">Background Color:</label>
+            <input type="color" id="background-color" value="#2a2a2a" onchange="changeBackgroundColor()">
+        </div>
+        <div class="checkbox-control">
+            <input type="checkbox" id="transparent-background">
+            <label for="transparent-background">Transparent Background</label>
+        </div>
+        <button onclick="downloadImage()">Download Image</button>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">Reset Settings</div>
+        <button class="reset-btn" onclick="resetArraySettings()">Reset Array Settings</button>
+        <button class="reset-btn" onclick="resetFontSettings()">Reset Font Settings</button>
+        <button class="reset-btn" onclick="resetArrowSettings()">Reset Arrow Settings</button>
+    </div>
+    <div class="divisor"></div>
+    <div class="control-section">
+        <div class="section-title">State Management</div>
+        <button class="delete-btn" id="reset-button-color" onclick="resetToDefault()">Reset to Default</button>
+    </div>
+    <div id="menu-wrapper" style="position: absolute; top: 0; left: 0; width: 100%; pointer-events: none;"></div>
+
+    <div id="custom-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p id="custom-modal-message"></p>
+            <div id="custom-modal-buttons">
+                <button id="custom-modal-ok">OK</button>
+                <button id="custom-modal-cancel" style="display: none;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
+    <div id="notification-template" class="notification" style="display: none;">
+        <div id="notification-show" class="notification show" style="display: none;"></div>
+        <div id="notification-success" class="notification success" style="display: none;"></div>
+        <div id="notification-error" class="notification error" style="display: none;"></div>
+        <div id="notification-warning" class="notification warning" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    const defaultColors = {
+        base: "#E3F9F9",
+        highlight1: "#1AD1B2",
+        highlight2: "#EA6C6C",
+        highlight3: "#2175C4",
+        backgroundColor: "#2a2a2a"
+    };
+
+    const defaultArrowColor = "#ffffff";
+
+    const defaultFontSizes = {
+        element: 30,
+        index: 17
+    };
+
+    const defaultFontColors = {
+        element: "#1a1a1a",
+        index: "#e0e0e0"
+    };
+
+    const ELEMENT_MARGIN = 2;
+    const INDEX_HEIGHT = 35;
+    const ARRAY_VERTICAL_MARGIN = 20;
+    const margin = {top: 30, right: 20, bottom: 30, left: 20};
+
+    let arrayStates = [{
+        elements: [1, 2, 3, 4, 5],
+        highlights: new Map(), // Map of index to highlight type (1, 2, or 3)
+        isHidden: false,
+        arrowDownLabel: "",
+        arrowUpLabel: "",
+    }];
+
+    const svg = d3.select("svg");
+    const ELEMENT_HEIGHT = 80;
+    let elementWidth = 80;
+    let colors = {...defaultColors};
+    let fontColors = {...defaultFontColors};
+    let arrayNames = ["Array 1"];
+    let currentArrayIndex, currentElementIndex;
+    let showDownArrows = false;
+    let showUpArrows = false;
+    let arrowColor = defaultArrowColor;
+    let topArrowLabels = {up: "", down: ""};
+    let bottomArrowLabels = {up: "", down: ""};
+
+    function updateSVGSize() {
+        const showIndexes = document.getElementById("show-indexes").checked;
+        const showNames = document.getElementById("show-names").checked;
+        const showDownArrows = document.getElementById("show-down-arrows").checked;
+        const showUpArrows = document.getElementById("show-up-arrows").checked;
+        const showTopArrows = document.getElementById("show-top-arrows").checked;
+        const showBottomArrows = document.getElementById("show-bottom-arrows").checked;
+        const numArrays = arrayStates.length;
+        const numHiddenArrays = arrayStates.filter(state => state.isHidden).length;
+        const totalNumArrays = numArrays - numHiddenArrays;
+        const maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
+        // Update element width based on the maximum element size
+        elementWidth = Math.max(...arrayStates.map(state => {
+            return Math.max(...state.elements.map(value =>
+                calculateElementWidth(value, document.getElementById("element-font-size").value)));
+        }));
+        const totalWidth = maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN + margin.left + margin.right;
+
+        let totalHeight = margin.top + margin.bottom;
+        totalHeight += totalNumArrays * ELEMENT_HEIGHT + (totalNumArrays - 1) * ARRAY_VERTICAL_MARGIN;
+        if (showNames) totalHeight += (totalNumArrays * 20) - 10;
+        if (showIndexes) totalHeight += totalNumArrays * 25;
+        if ((showDownArrows || showUpArrows) && totalNumArrays > 1) totalHeight += (totalNumArrays - 1) * 44;
+        if (showTopArrows && (showUpArrows || showDownArrows)) totalHeight += 44;
+        if (showBottomArrows && (showUpArrows || showDownArrows)) totalHeight += 44;
+
+        d3.select("#array-container")
+            .style("width", `${totalWidth}px`);
+
+        svg.attr("width", totalWidth)
+            .attr("height", totalHeight);
+
+        return {totalWidth, totalHeight};
+    }
+
+    function drawArrays() {
+        svg.selectAll("*").remove();
+
+        const {totalWidth} = updateSVGSize();
+        const showIndexes = document.getElementById("show-indexes").checked;
+        const showNames = document.getElementById("show-names").checked;
+        const showDownArrows = document.getElementById("show-down-arrows").checked;
+        const showUpArrows = document.getElementById("show-up-arrows").checked;
+        const showTopArrows = document.getElementById("show-top-arrows").checked;
+        const showBottomArrows = document.getElementById("show-bottom-arrows").checked;
+
+        let cumulativeHeight = margin.top;
+        let maxArrayLength = Math.max(...arrayStates.map(state => state.elements.length));
+
+        if (showTopArrows) {
+            drawArrow(totalWidth / 2, cumulativeHeight, totalWidth / 2, cumulativeHeight + 30, -1, showDownArrows, showUpArrows);
+            cumulativeHeight += 60
+        }
+
+        arrayStates.forEach((state, arrayIndex) => {
+            if (state.isHidden) return;
+            const arrayWidth = calculateArrayWidth(state.elements.length);
+            const startX = (totalWidth - arrayWidth) / 2;
+
+            if (showNames) {
+                if (arrayIndex > 0) cumulativeHeight += 10;
+                svg.append("text")
+                    .attr("class", "array-name")
+                    .attr("x", startX)
+                    .attr("y", cumulativeHeight)
+                    .text(arrayNames[arrayIndex] || `Array ${arrayIndex + 1}`)
+                    .attr("fill", fontColors.index)
+                    .style("font-family", "monospace")
+                    .style("font-size", "14px")
+                    .style("shape-rendering", "crispEdges");
+                cumulativeHeight += 10;
+            }
+
+            // Draw array elements
+            const arrayGroup = svg.append("g")
+                .attr("transform", `translate(${startX}, ${cumulativeHeight})`);
+
+            const elements = arrayGroup.selectAll("g")
+                .data(state.elements.map((value, index) => ({
+                    value,
+                    index
+                })), d => d.index) // Use index as the key for data binding
+                .enter()
+                .append("g")
+                .attr("transform", (d, i) => `translate(${i * (elementWidth + ELEMENT_MARGIN)}, 0)`);
+
+            elements.append("rect")
+                .attr("class", "array-element")
+                .attr("width", elementWidth)
+                .attr("height", ELEMENT_HEIGHT)
+                .attr("fill", d => {
+                    const highlightType = state.highlights.get(d.index);
+                    if (highlightType === 1) return colors.highlight1;
+                    if (highlightType === 2) return colors.highlight2;
+                    if (highlightType === 3) return colors.highlight3;
+                    return colors.base;
+                })
+                .on("click", function (event, d) {
+                    event.stopPropagation(); // Stop the event from bubbling up
+                    const rect = event.target.getBoundingClientRect();
+                    showElementMenu(event, arrayIndex, d.index, rect);
+                });
+
+            elements.append("text")
+                .attr("class", "array-text")
+                .attr("x", elementWidth / 2)
+                .attr("y", ELEMENT_HEIGHT / 2 + 4)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .text(d => String(d.value))  // Convert all values to strings for display
+                .attr("fill", fontColors.element)
+                .style("font-family", "Arial, sans-serif")
+                .style("shape-rendering", "crispEdges");
+
+            cumulativeHeight += ELEMENT_HEIGHT;
+
+            if (showIndexes) {
+                elements.append("text")
+                    .attr("class", "index-text")
+                    .attr("x", elementWidth / 2)
+                    .attr("y", ELEMENT_HEIGHT + INDEX_HEIGHT / 2)
+                    .attr("text-anchor", "middle")
+                    .attr("dominant-baseline", "middle")
+                    .text(d => d.index)
+                    .attr("fill", fontColors.index)
+                    .style("font-family", "Arial, sans-serif")
+                    .style("shape-rendering", "crispEdges");
+                cumulativeHeight += 25;
+            }
+
+            let nextArrayIndex = arrayIndex + 1;
+            if ((showDownArrows || showUpArrows) && arrayIndex < arrayStates.length - 1 && !arrayStates[nextArrayIndex].isHidden) {
+                cumulativeHeight += 10;
+                const startY = cumulativeHeight;
+                const endY = cumulativeHeight + 30;
+                const arrowWidth = Math.max(maxArrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN, 100);
+
+                drawArrow(margin.left + arrowWidth / 2, startY, margin.left + arrowWidth / 2, endY, arrayIndex, showDownArrows, showUpArrows);
+
+                cumulativeHeight += 34;
+            }
+
+            if (arrayIndex < arrayStates.length - 1) {
+                cumulativeHeight += ARRAY_VERTICAL_MARGIN;
+            }
+        });
+
+        if (showBottomArrows) {
+            cumulativeHeight += 10;
+            drawArrow(totalWidth / 2, cumulativeHeight, totalWidth / 2, cumulativeHeight + 30, arrayStates.length, showDownArrows, showUpArrows);
+            cumulativeHeight += 34;
+        }
+
+        changeFontSize();
+    }
+
+    function calculateArrayWidth(arrayLength) {
+        return arrayLength * (elementWidth + ELEMENT_MARGIN) - ELEMENT_MARGIN;
+    }
+
+    function getTextWidth(text, font) {
+        const canvas = getTextWidth.canvas || (getTextWidth.canvas = document.createElement("canvas"));
+        const context = canvas.getContext("2d");
+        context.font = font;
+        const metrics = context.measureText(text);
+        return metrics.width;
+    }
+
+    function calculateElementWidth(value, fontSize) {
+        const padding = 10; // Padding on each side
+        const textWidth = getTextWidth(String(value), `${fontSize}px Arial`);
+        return Math.max(80, textWidth + 2 * padding);
+    }
+
+    function drawArrow(startX, startY, endX, endY, fromIndex, showDownArrows, showUpArrows) {
+        const arrowGroup = svg.append("g").attr("class", "arrow-group");
+        const arrowOffset = 15; // Offset from the center when both arrows are shown
+
+        let downArrowX, upArrowX;
+        let showBothArrows = showDownArrows && showUpArrows;
+
+        if (showBothArrows) {
+            // Both arrows are shown, offset them from the center
+            downArrowX = startX - arrowOffset;
+            upArrowX = startX + arrowOffset;
+        } else {
+            // Only one arrow is shown, place it in the center
+            downArrowX = upArrowX = startX;
+        }
+
+        if (showDownArrows) {
+            // Draw down arrow
+            arrowGroup.append("path")
+                .attr("d", `M${downArrowX},${startY} L${downArrowX},${endY - 8}`)
+                .attr("stroke", arrowColor)
+                .attr("stroke-width", 3)
+                .attr("marker-end", "url(#arrowhead-down)");
+
+            // Draw a wider, transparent path for easier clicking
+            arrowGroup.append("path")
+                .attr("d", `M${downArrowX},${startY} L${downArrowX},${endY + 10}`)
+                .attr("stroke", "transparent")
+                .attr("stroke-width", 20)
+                .style("cursor", "pointer")
+                .on("click", (event) => showArrowMenu(event, fromIndex, "down"));
+        }
+
+        if (showUpArrows) {
+            // Draw up arrow
+            arrowGroup.append("path")
+                .attr("d", `M${upArrowX},${endY + 10} L${upArrowX},${startY + 18}`)
+                .attr("stroke", arrowColor)
+                .attr("stroke-width", 3)
+                .attr("marker-end", "url(#arrowhead-up)");
+
+            // Draw a wider, transparent path for easier clicking
+            arrowGroup.append("path")
+                .attr("d", `M${upArrowX},${endY + 10} L${upArrowX},${startY}`)
+                .attr("stroke", "transparent")
+                .attr("stroke-width", 20)
+                .style("cursor", "pointer")
+                .on("click", (event) => showArrowMenu(event, fromIndex, "up"));
+        }
+
+        // Create arrowheads for both directions
+        if (!svg.select("#arrowhead-down").node()) {
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead-down")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 0)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", arrowColor)
+        }
+
+        if (!svg.select("#arrowhead-up").node()) {
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead-up")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 0)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto-start-reverse")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", arrowColor)
+        }
+
+        if (fromIndex === -1 || fromIndex === arrayStates.length) {
+            if (topArrowLabels.down || topArrowLabels.up || bottomArrowLabels.down || bottomArrowLabels.up) {
+                if (showBothArrows) {
+                    let offset = arrowOffset;
+                    let text = "";
+                    if (fromIndex === -1) {
+                        text = topArrowLabels.down;
+                    } else if (fromIndex === arrayStates.length) {
+                        text = bottomArrowLabels.down;
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 - offset - 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "end")
+                        .attr("dominant-baseline", "right")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+
+                    if (fromIndex === -1) {
+                        text = topArrowLabels.up;
+                    } else if (fromIndex === arrayStates.length) {
+                        text = bottomArrowLabels.up;
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 + offset + 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "start")
+                        .attr("dominant-baseline", "left")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+                } else {
+                    let text = "";
+                    if (showUpArrows) {
+                        if (fromIndex === -1) {
+                            text = topArrowLabels.up;
+                        } else if (fromIndex === arrayStates.length) {
+                            text = bottomArrowLabels.up;
+                        }
+                    } else if (showDownArrows) {
+                        if (fromIndex === -1) {
+                            text = topArrowLabels.down;
+                        } else if (fromIndex === arrayStates.length) {
+                            text = bottomArrowLabels.down;
+                        }
+                    }
+                    arrowGroup.append("text")
+                        .attr("x", (startX + endX) / 2 + 20)
+                        .attr("y", (startY + endY) / 2 + 5)
+                        .attr("text-anchor", "start")
+                        .attr("dominant-baseline", "right")
+                        .attr("fill", arrowColor)
+                        .style("font-family", "Arial, sans-serif")
+                        .style("shape-rendering", "crispEdges")
+                        .text(text);
+                }
+            }
+            return;
+        }
+
+        if (arrayStates[fromIndex].arrowUpLabel || arrayStates[fromIndex].arrowDownLabel) {
+            if (showBothArrows) {
+                let offset = arrowOffset;
+                arrowGroup.append("text")
+                    .attr("x", (startX + endX) / 2 - offset - 20)
+                    .attr("y", (startY + endY) / 2 + 5)
+                    .attr("text-anchor", "end")
+                    .attr("dominant-baseline", "right")
+                    .attr("fill", arrowColor)
+                    .style("font-family", "Arial, sans-serif")
+                    .style("shape-rendering", "crispEdges")
+                    .text(arrayStates[fromIndex].arrowDownLabel);
+
+                arrowGroup.append("text")
+                    .attr("x", (startX + endX) / 2 + offset + 20)
+                    .attr("y", (startY + endY) / 2 + 5)
+                    .attr("text-anchor", "start")
+                    .attr("dominant-baseline", "left")
+                    .attr("fill", arrowColor)
+                    .style("font-family", "Arial, sans-serif")
+                    .style("shape-rendering", "crispEdges")
+                    .text(arrayStates[fromIndex].arrowUpLabel);
+            } else {
+                let text = "";
+                if (showDownArrows) text = arrayStates[fromIndex].arrowDownLabel;
+                else if (showUpArrows) text = arrayStates[fromIndex].arrowUpLabel;
+
+                arrowGroup.append("text")
+                    .attr("x", (startX + endX) / 2 + 20)
+                    .attr("y", (startY + endY) / 2 + 5)
+                    .attr("text-anchor", "start")
+                    .attr("dominant-baseline", "middle")
+                    .attr("fill", arrowColor)
+                    .style("font-family", "Arial, sans-serif")
+                    .style("shape-rendering", "crispEdges")
+                    .text(text);
+            }
+        }
+    }
+
+    function updateArrowLabel() {
+        const menu = document.getElementById('arrow-menu');
+        const arrowIndex = menu.dataset.arrowIndex;
+        const direction = menu.dataset.arrowDirection;
+        const newLabel = document.getElementById('arrow-label-input').value;
+
+        if (direction === 'up') {
+            if (arrowIndex === '-1') {
+                topArrowLabels.up = newLabel;
+            } else if (arrowIndex === arrayStates.length.toString()) {
+                bottomArrowLabels.up = newLabel;
+            } else {
+                arrayStates[arrowIndex].arrowUpLabel = newLabel;
+            }
+        } else if (direction === 'down') {
+            if (arrowIndex === '-1') {
+                topArrowLabels.down = newLabel;
+            } else if (arrowIndex === arrayStates.length.toString()) {
+                bottomArrowLabels.down = newLabel;
+            } else {
+                arrayStates[arrowIndex].arrowDownLabel = newLabel;
+            }
+        }
+
+        drawArrays();
+        saveState();
+        hideArrowMenu();
+    }
+
+    function parseArrayInput(input) {
+        return input.split(',').map(item => {
+            item = item.trim();
+            if (item === 'true') return true;
+            if (item === 'false') return false;
+            if (item === '') return item;  // Allow empty strings
+            if (!isNaN(item)) return Number(item);
+            return item;  // If it's not a number, boolean, or empty, treat it as a string
+        });
+    }
+
+    function addArray() {
+        const input = document.getElementById("array-input").value;
+        const newArray = parseArrayInput(input);
+        arrayStates.push({
+            elements: newArray,
+            highlights: new Map()
+        });
+        arrayNames.push(`Array ${arrayStates.length}`);  // Add a default name
+        updateArrayList();
+        drawArrays();
+        document.getElementById("array-input").value = "";
+        showNotification("Array added successfully.", "success");
+    }
+
+    function updateArrayList() {
+        const arrayList = document.getElementById("array-list");
+        arrayList.innerHTML = "";
+        arrayStates.forEach((state, index) => {
+            const arrayItem = document.createElement("div");
+            arrayItem.className = `array-item${state.isHidden ? ' hidden' : ''}`;
+            arrayItem.dataset.index = index.toString();
+            arrayItem.innerHTML = `
+                    <div class="checkbox-control">
+                        <input type="checkbox" id="array-${index}" ${state.isHidden ? '' : 'checked'}>
+                        <input type="text" class="array-name-input" value="${arrayNames[index]}" onchange="updateArrayName(${index}, this.value)">
+                    </div>
+                    <div class="array-edit">
+                        <input type="text" id="edit-array-${index}" placeholder="Edit array (comma-separated)"
+                        value="${state.elements.map(String).join(", ")}" onchange="editArray(${index})">
+                        <button class="hide-show-button" onclick="hideOrShowArray(${index})">${state.isHidden ? 'Show' : 'Hide'}</button>
+                        <button onclick="duplicateArray(${index})">Duplicate</button>
+                        <button class="delete-btn" onclick="removeArray(${index})">Remove</button>
+                    </div>
+                `;
+            arrayList.appendChild(arrayItem);
+        });
+
+        // Initialize Sortable
+        const sortable = new Sortable(arrayList, {
+            animation: 150
+        });
+
+        // Add event listener for the end of sorting
+        sortable.option("onEnd", function (evt) {
+            const oldIndex = parseInt(evt.item.dataset.index);
+            const newIndex = Array.from(arrayList.children).indexOf(evt.item);
+            if (oldIndex !== newIndex) {
+                // Reorder arrayStates and arrayNames
+                const [movedArrayState] = arrayStates.splice(oldIndex, 1);
+                const [movedArrayName] = arrayNames.splice(oldIndex, 1);
+                arrayStates.splice(newIndex, 0, movedArrayState);
+                arrayNames.splice(newIndex, 0, movedArrayName);
+
+                // Update the data-index attributes
+                Array.from(arrayList.children).forEach((item, index) => {
+                    item.dataset.index = index.toString();
+                });
+
+                // Redraw arrays and save state
+                drawArrays();
+                saveState();
+                updateArrayList();  // Refresh the list to update indexes
+            }
+        });
+    }
+
+    function updateArrayName(index, newName) {
+        arrayNames[index] = newName;
+        drawArrays();
+    }
+
+    function editArray(index) {
+        const newArrayString = document.getElementById(`edit-array-${index}`).value;
+        const newArray = parseArrayInput(newArrayString);
+
+        arrayStates[index] = {
+            elements: newArray,
+            highlights: new Map()
+        };
+
+        updateArrayList();
+        drawArrays();
+    }
+
+    function hideOrShowArray(index) {
+        arrayStates[index].isHidden = !arrayStates[index].isHidden;
+        updateArrayList();
+        drawArrays();
+        saveState();
+        showNotification(`${arrayNames[index]} ${arrayStates[index].isHidden ? 'hidden' : 'shown'} successfully.`, "success");
+    }
+
+    function duplicateArray(index) {
+        const newArray = arrayStates[index];
+        arrayStates.push({
+            elements: [...newArray.elements],
+            highlights: new Map(newArray.highlights)
+        });
+        arrayNames.push(`${arrayNames[index]}`);
+        updateArrayList();
+        drawArrays();
+        showNotification(`${arrayNames[index]} duplicated successfully.`, "success");
+    }
+
+    function removeArray(index) {
+        if (arrayStates.length > 1) {
+            arrayStates.splice(index, 1);
+            arrayNames.splice(index, 1);
+            updateArrayList();
+            drawArrays();
+            showNotification(`Array removed successfully.`, "success");
+        } else {
+            showNotification("Cannot remove the last array. At least one array must remain.", "error");
+        }
+        saveState();
+    }
+
+    function showArrowMenu(event, arrowIndex, direction) {
+        event.stopPropagation();  // Stop the event from bubbling up
+        const menu = document.getElementById('arrow-menu');
+        menu.style.display = 'block';
+        menu.style.left = `${event.pageX}px`;
+        menu.style.top = `${event.pageY}px`;
+
+        const labelInput = document.getElementById('arrow-label-input');
+        if (direction === "up") {
+            if (arrowIndex === -1) {
+                labelInput.value = topArrowLabels.up || '';
+            } else if (arrowIndex === arrayStates.length) {
+                labelInput.value = bottomArrowLabels.up || '';
+            } else {
+                labelInput.value = arrayStates[arrowIndex].arrowUpLabel || '';
+            }
+        } else if (direction === "down") {
+            if (arrowIndex === -1) {
+                labelInput.value = topArrowLabels.down || '';
+            } else if (arrowIndex === arrayStates.length) {
+                labelInput.value = bottomArrowLabels.down || '';
+            } else {
+                labelInput.value = arrayStates[arrowIndex].arrowDownLabel || '';
+            }
+        }
+
+        // Store the current arrow index and direction
+        menu.dataset.arrowIndex = arrowIndex;
+        menu.dataset.arrowDirection = direction;
+    }
+
+    function showElementMenu(event, arrayIndex, elementIndex, rect) {
+        const menu = document.getElementById('element-menu');
+        const wrapper = document.getElementById('menu-wrapper');
+        wrapper.style.height = document.documentElement.scrollHeight + 'px';
+        wrapper.appendChild(menu);
+        menu.style.display = 'block';
+        menu.style.pointerEvents = 'auto';
+
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        // Calculate position relative to the page
+        let left = rect.left + (rect.width / 2) - (menuWidth / 2);
+        let top = event.pageY + 10; // 10px gap below the cursor
+
+        // Adjust horizontal position if necessary
+        if (left < 0) {
+            left = 0;
+        } else if (left + menuWidth > viewportWidth) {
+            left = viewportWidth - menuWidth;
+        }
+
+        // Adjust vertical position if necessary
+        if (top + menuHeight > window.scrollY + viewportHeight) {
+            top = event.pageY - menuHeight - 10; // 10px gap above the cursor
+        }
+
+        // Ensure the menu is not positioned above the top of the page
+        if (top < 0) {
+            top = 0;
+        }
+
+        // Set position absolute relative to the wrapper (which is relative to the page)
+        menu.style.position = 'absolute';
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+
+        currentArrayIndex = arrayIndex;
+        currentElementIndex = elementIndex;
+        document.getElementById('edit-element-input').value = arrayStates[arrayIndex].elements[elementIndex];
+
+        // Update highlight button colors
+        document.getElementById('highlight1-button').style.backgroundColor = colors.highlight1;
+        document.getElementById('highlight2-button').style.backgroundColor = colors.highlight2;
+        document.getElementById('highlight3-button').style.backgroundColor = colors.highlight3;
+    }
+
+    function hideElementMenu() {
+        document.getElementById('element-menu').style.display = 'none';
+    }
+
+    function hideArrowMenu() {
+        document.getElementById('arrow-menu').style.display = 'none';
+    }
+
+    function updateElement() {
+        arrayStates[currentArrayIndex].elements[currentElementIndex] = document.getElementById('edit-element-input').value;
+        hideElementMenu();
+        updateArrayList();
+        drawArrays();
+        saveState();
+    }
+
+    function setHighlight(type) {
+        arrayStates[currentArrayIndex].highlights.set(currentElementIndex, type);
+        hideElementMenu();
+        drawArrays();
+        saveState();
+    }
+
+    function removeHighlight() {
+        arrayStates[currentArrayIndex].highlights.delete(currentElementIndex);
+        hideElementMenu();
+        drawArrays();
+        saveState();
+    }
+
+    function updateColors() {
+        colors.base = document.getElementById("base-color").value;
+        colors.highlight1 = document.getElementById("highlight1-color").value;
+        colors.highlight2 = document.getElementById("highlight2-color").value;
+        colors.highlight3 = document.getElementById("highlight3-color").value;
+        arrowColor = document.getElementById("arrow-color").value;
+        svg.select("#arrowhead path").attr("fill", arrowColor);
+        drawArrays();
+    }
+
+    function updateFontColors() {
+        fontColors.element = document.getElementById("element-font-color").value;
+        fontColors.index = document.getElementById("index-font-color").value;
+        svg.selectAll(".array-text")
+            .attr("fill", fontColors.element);
+        svg.selectAll(".index-text, .array-name")  // Apply to both index and array name
+            .attr("fill", fontColors.index);
+        saveState();
+    }
+
+    function changeFontSize() {
+        const elementFontSize = document.getElementById("element-font-size").value;
+        const indexFontSize = document.getElementById("index-font-size").value;
+        svg.selectAll(".array-text")
+            .style("font-size", `${elementFontSize}px`);
+        svg.selectAll(".index-text")
+            .style("font-size", `${indexFontSize}px`);
+        saveState();
+    }
+
+    async function resetFontSettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the font settings to default?");
+        if (confirm) {
+            document.getElementById("element-font-size").value = defaultFontSizes.element;
+            document.getElementById("index-font-size").value = defaultFontSizes.index;
+            document.getElementById("element-font-color").value = defaultFontColors.element;
+            document.getElementById("index-font-color").value = defaultFontColors.index;
+            changeFontSize();
+            updateFontColors();
+            showNotification("Font settings reset to default.", "success");
+        }
+    }
+
+    async function resetArraySettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the array colors to default?");
+        if (confirm) {
+            document.getElementById("base-color").value = defaultColors.base;
+            document.getElementById("highlight1-color").value = defaultColors.highlight1;
+            document.getElementById("highlight2-color").value = defaultColors.highlight2;
+            document.getElementById("highlight3-color").value = defaultColors.highlight3;
+            document.getElementById("background-color").value = defaultColors.backgroundColor;
+            showNotification("Array colors reset to default.", "success");
+        }
+    }
+
+    async function resetArrowSettings() {
+        const confirm = await customConfirm("Are you sure you want to reset the arrow color to default?");
+        if (confirm) {
+            document.getElementById("arrow-color").value = defaultArrowColor;
+            arrowColor = defaultArrowColor;
+            updateColors();
+            drawArrays();
+            saveState();
+            showNotification("Arrow color reset to default.", "success");
+        }
+    }
+
+    function removeArrowLabels() {
+        arrayStates.forEach(state => {
+            state.arrowDownLabel = "";
+            state.arrowUpLabel = "";
+        });
+        drawArrays();
+        saveState();
+        showNotification("Arrow labels removed successfully.", "success");
+    }
+
+    function changeBackgroundColor() {
+        document.getElementById("array-container").style.backgroundColor = document.getElementById("background-color").value;
+        colors.backgroundColor = document.getElementById("background-color").value;
+        saveState();
+    }
+
+    function downloadImage() {
+        const svgNode = svg.node();
+        const svgWidth = svgNode.width.baseVal.value;
+        const svgHeight = svgNode.height.baseVal.value;
+
+        // Increase resolution
+        const scale = document.getElementById("scale-factor").value;
+        const canvas = document.createElement("canvas");
+        canvas.width = svgWidth * scale;
+        canvas.height = svgHeight * scale;
+        const ctx = canvas.getContext("2d");
+
+        // Enable smooth scaling
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Scale the context to increase resolution
+        ctx.scale(scale, scale);
+
+        const transparentBackground = document.getElementById("transparent-background").checked;
+        if (!transparentBackground) {
+            ctx.fillStyle = document.getElementById("background-color").value;
+            ctx.fillRect(0, 0, svgWidth, svgHeight);
+        }
+
+        // Convert SVG to data URL
+        const svgData = new XMLSerializer().serializeToString(svgNode);
+        const svgBlob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+        const url = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = function () {
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+
+            // Apply font smoothing
+            ctx.textRendering = "optimizeLegibility";
+            ctx.webkitFontSmoothing = "antialiased";
+            ctx.mozOSXFontSmoothing = "grayscale";
+
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = "multi_array_visualization.png";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        };
+        img.src = url;
+
+        showNotification("Image exported successfully.", "success");
+    }
+
+    function customConfirm(message) {
+        return customModal(message, true);
+    }
+
+    function customModal(message, isConfirm = false) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-modal');
+            const messageElement = document.getElementById('custom-modal-message');
+            const okButton = document.getElementById('custom-modal-ok');
+            const cancelButton = document.getElementById('custom-modal-cancel');
+
+            messageElement.textContent = message;
+            modal.style.display = 'block';
+
+            if (isConfirm) {
+                cancelButton.style.display = 'inline-block';
+                okButton.textContent = 'Yes';
+                cancelButton.textContent = 'No';
+            } else {
+                cancelButton.style.display = 'none';
+                okButton.textContent = 'OK';
+            }
+
+            okButton.focus();
+
+            okButton.onclick = function () {
+                modal.style.display = 'none';
+                resolve(true);
+            }
+
+            cancelButton.onclick = function () {
+                modal.style.display = 'none';
+                resolve(false);
+            }
+
+            window.onclick = function (event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    resolve(false);
+                }
+            }
+        });
+    }
+
+    function showNotification(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('notification-container');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        container.appendChild(notification);
+
+        // Trigger reflow to enable transition
+        notification.offsetHeight;
+
+        // Add 'show' class to fade in
+        notification.classList.add('show');
+
+        setTimeout(() => {
+            // Remove 'show' class to fade out
+            notification.classList.remove('show');
+
+            // Remove the notification from the DOM after fade out
+            setTimeout(() => {
+                container.removeChild(notification);
+            }, 300);
+        }, duration);
+    }
+
+    // Update the event listener for the "Show Indexes" checkbox
+    document.getElementById("show-indexes").addEventListener("change", drawArrays);
+
+    // Event listener to hide the menu when clicking outside
+    document.addEventListener('click', function (event) {
+        const menu = document.getElementById('element-menu');
+        if (!menu.contains(event.target) && event.target.id !== 'edit-element-input') {
+            hideElementMenu();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const menu = document.getElementById('arrow-menu');
+        const arrowPaths = document.querySelectorAll('.arrow-group path');
+
+        let clickedOnArrow = false;
+        arrowPaths.forEach(path => {
+            if (path.contains(event.target)) {
+                clickedOnArrow = true;
+            }
+        });
+
+        if (!menu.contains(event.target) && !clickedOnArrow) {
+            hideArrowMenu();
+        }
+    });
+
+    // Add an event listener for the arrow checkboxes
+    document.getElementById("show-down-arrows").addEventListener("change", function () {
+        showDownArrows = this.checked;
+        drawArrays();
+        saveState();
+    });
+
+    document.getElementById("show-up-arrows").addEventListener("change", function () {
+        showUpArrows = this.checked;
+        drawArrays();
+        saveState();
+    });
+
+    // Load state when the page loads
+    window.onload = function () {
+        loadState();
+        updateArrayList();
+        drawArrays();
+    };
+
+    // Load state from local storage or use default values
+    function loadState() {
+        const savedState = localStorage.getItem('arrayVisualizerState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            arrayStates = state.arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlights: new Map(arr.highlights || []),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
+            }));
+            arrayNames = state.arrayNames;
+            colors = state.colors;
+            fontColors = state.fontColors;
+            elementWidth = state.elementWidth || elementWidth;
+            document.getElementById("base-color").value = colors.base;
+            document.getElementById("highlight1-color").value = colors.highlight1;
+            document.getElementById("highlight2-color").value = colors.highlight2;
+            document.getElementById("highlight3-color").value = colors.highlight3;
+            document.getElementById("background-color").value = colors.backgroundColor;
+            document.getElementById("array-container").style.backgroundColor = colors.backgroundColor;
+            document.getElementById("element-font-color").value = fontColors.element;
+            document.getElementById("index-font-color").value = fontColors.index;
+            document.getElementById("element-font-size").value = state.fontSizes.element;
+            document.getElementById("index-font-size").value = state.fontSizes.index;
+            document.getElementById("show-indexes").checked = state.showIndexes;
+            document.getElementById("show-names").checked = state.showNames;
+            document.getElementById("show-down-arrows").checked = state.showDownArrows;
+            document.getElementById("show-up-arrows").checked = state.showUpArrows;
+            document.getElementById("arrow-color").value = state.arrowColor;
+            document.getElementById("show-top-arrows").checked = state.showTopArrows;
+            document.getElementById("show-bottom-arrows").checked = state.showBottomArrows;
+            document.getElementById("scale-factor").value = state.scaleFactor;
+            arrowColor = state.arrowColor || defaultArrowColor;
+        }
+    }
+
+    // Save current state to local storage
+    function saveState() {
+        const state = {
+            arrayStates: arrayStates.map(arr => ({
+                elements: arr.elements,
+                highlights: Array.from(arr.highlights.entries()),
+                isHidden: arr.isHidden,
+                arrowDownLabel: arr.arrowDownLabel,
+                arrowUpLabel: arr.arrowUpLabel
+            })),
+            arrayNames,
+            colors,
+            fontColors,
+            elementWidth,
+            fontSizes: {
+                element: document.getElementById("element-font-size").value,
+                index: document.getElementById("index-font-size").value
+            },
+            showIndexes: document.getElementById("show-indexes").checked,
+            showNames: document.getElementById("show-names").checked,
+            showDownArrows: document.getElementById("show-down-arrows").checked,
+            showUpArrows: document.getElementById("show-up-arrows").checked,
+            arrowColor: arrowColor,
+            showTopArrows: document.getElementById("show-top-arrows").checked,
+            showBottomArrows: document.getElementById("show-bottom-arrows").checked,
+            scaleFactor: document.getElementById("scale-factor").value
+        };
+        localStorage.setItem('arrayVisualizerState', JSON.stringify(state));
+    }
+
+    async function resetToDefault() {
+        const confirmed = await customConfirm("Are you sure you want to reset to default settings?");
+        if (confirmed) {
+            arrayStates = [{
+                elements: [1, 2, 3, 4, 5],
+                highlights: new Map(),
+                isHidden: false,
+                arrowDownLabel: "",
+                arrowUpLabel: ""
+            }];
+            arrayNames = ["Array 1"];
+            colors = {...defaultColors};
+            fontColors = {...defaultFontColors};
+            elementWidth = 80;
+            document.getElementById("base-color").value = defaultColors.base;
+            document.getElementById("highlight1-color").value = defaultColors.highlight1;
+            document.getElementById("highlight2-color").value = defaultColors.highlight2;
+            document.getElementById("highlight3-color").value = defaultColors.highlight3;
+            document.getElementById("background-color").value = defaultColors.backgroundColor;
+            document.getElementById("array-container").style.backgroundColor = defaultColors.backgroundColor;
+            document.getElementById("element-font-color").value = defaultFontColors.element;
+            document.getElementById("index-font-color").value = defaultFontColors.index;
+            document.getElementById("element-font-size").value = defaultFontSizes.element;
+            document.getElementById("index-font-size").value = defaultFontSizes.index;
+            document.getElementById("show-indexes").checked = true;
+            document.getElementById("show-names").checked = true;
+            document.getElementById("show-down-arrows").checked = false;
+            document.getElementById("show-up-arrows").checked = false;
+            document.getElementById("arrow-color").value = defaultArrowColor;
+            document.getElementById("show-top-arrows").checked = false;
+            document.getElementById("show-bottom-arrows").checked = false;
+            document.getElementById("scale-factor").value = 2;
+            arrowColor = defaultArrowColor;
+            topArrowLabels = {up: "", down: ""};
+            bottomArrowLabels = {up: "", down: ""};
+            updateArrayList();
+            drawArrays();
+            showNotification("Settings reset to default.", "success");
+        }
+    }
+</script>
+<div id="element-menu">
+    <label for="edit-element-input"></label><input type="text" id="edit-element-input" placeholder="Edit element">
+    <button onclick="updateElement()">Update</button>
+
+    <div class="highlight-buttons">
+        <button id="highlight1-button" class="highlight-button" onclick="setHighlight(1)">H1</button>
+        <button id="highlight2-button" class="highlight-button" onclick="setHighlight(2)">H2</button>
+        <button id="highlight3-button" class="highlight-button" onclick="setHighlight(3)">H3</button>
+    </div>
+    <button id="remove-button-color" onclick="removeHighlight()">Remove Highlight</button>
+</div>
+<div id="arrow-menu"
+     style="display: none; position: absolute; background-color: #444; border: 1px solid #666; border-radius: 4px; padding: 10px;">
+    <label for="arrow-label-input"></label><input type="text" id="arrow-label-input" placeholder="Enter arrow label">
+    <button onclick="updateArrowLabel()">Update</button>
+</div>
+</body>
+</html>
