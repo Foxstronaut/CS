@@ -1,0 +1,8 @@
+# Dockerfile
+FROM jupyter/base-notebook:latest
+USER root
+RUN apt-get install -y default-jdk
+RUN pip install jupyter
+RUN wget https://github.com/dflib/jjava/releases/latest/download/jjava-x.x.x.zip \
+    && unzip jjava-*.zip && cd jjava-* && python install.py --sys-prefix
+USER $NB_UID
